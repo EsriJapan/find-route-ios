@@ -1,0 +1,21 @@
+
+/* Class = "UILabel"; text = "Title"; ObjectID = "11E-IO-luI"; */
+"11E-IO-luI.text" = "Title";
+
+/* Class = "UIButton"; normalTitle = "決定"; ObjectID = "68R-Pd-Zwt"; */
+"68R-Pd-Zwt.normalTitle" = "決定";
+
+/* Class = "UIButton"; normalTitle = "Button"; ObjectID = "M3E-Bs-tiS"; */
+"M3E-Bs-tiS.normalTitle" = "Button";
+
+/* Class = "UIButton"; normalTitle = "お気に入り"; ObjectID = "Mjy-JM-4Rp"; */
+"Mjy-JM-4Rp.normalTitle" = "お気に入り";
+
+/* Class = "UIButton"; normalTitle = "写真を見る"; ObjectID = "Y8B-z8-PZi"; */
+"Y8B-z8-PZi.normalTitle" = "写真を見る";
+
+/* Class = "UILabel"; text = "Label"; ObjectID = "igM-xu-b8X"; */
+"igM-xu-b8X.text" = "Label";
+
+/* Class = "UIButton"; normalTitle = "保存"; ObjectID = "lZV-MH-Zro"; */
+"lZV-MH-Zro.normalTitle" = "保存";
