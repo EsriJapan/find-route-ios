@@ -17,7 +17,7 @@ class PhotoViewController: UIViewController ,UICollectionViewDataSource, UIColle
         super.viewDidLoad()
         
         self.navigationItem.title = "スポットを選択"
-        
+
         // ドキュメント フォルダのパスを取得
         self.filePath = NSSearchPathForDirectoriesInDomains(.documentDirectory,Foundation.FileManager.SearchPathDomainMask.userDomainMask, true)[0]
         
@@ -30,7 +30,7 @@ class PhotoViewController: UIViewController ,UICollectionViewDataSource, UIColle
             }
             print(photoItems)
         } else {
-            print("photo フォルダが存在しません")
+            self.showError(str: "photo フォルダがありません")
         }
         
         let appDelegate: AppDelegate = UIApplication.shared.delegate as! AppDelegate
@@ -104,6 +104,16 @@ class PhotoViewController: UIViewController ,UICollectionViewDataSource, UIColle
             cell?.layer.borderWidth = 0.0
             cell?.tag = 0
         }
+    }
+    
+    
+    private func showError(str:String) {
+        // エラーのアラート表示
+        let alert: UIAlertController = UIAlertController(title: "エラー", message: str, preferredStyle:  UIAlertController.Style.alert)
+        let defaultAction: UIAlertAction = UIAlertAction(title: "OK", style: UIAlertAction.Style.default, handler: nil)
+        alert.addAction(defaultAction)
+        present(alert, animated: true, completion: nil)
+        
     }
     
     

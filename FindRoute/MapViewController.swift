@@ -124,43 +124,55 @@ class MapViewController: UIViewController , UITextFieldDelegate{
         catch let error as NSError {
             print(error.localizedDescription)
         }
- 
         
-        // モバイル マップ パッケージの初期化
-        self.mapPackage = AGSMobileMapPackage(name: "miyako")
         
-        // モバイル マップ パッケージのロード
-        self.mapPackage.load { [weak self] (error: Error?) in
-            if let error = error {
-                print(error.localizedDescription)
-            }
-            else {
-                if let weakSelf = self {
-                    if weakSelf.mapPackage.maps.count > 0 {
-                        // モバイル マップ パッケージに保存されているひとつめのマップを mapView 設定
-                        weakSelf.mapView.map = weakSelf.mapPackage.maps[0]
-                        weakSelf.mapView.map?.load(completion: { [weak self] (error:Error?) -> Void in
-                            if let error = error {
-                                self?.showError(str: error.localizedDescription)
-                            }
-                            else {
-                                // マップの最少スケールを設定
-                                self?.mapView.map?.minScale = 500000
-                                // グラフィック オーバレイを mapView  に追加
-                                self?.mapView.graphicsOverlays.addObjects(from: [self?.routeGraphicsOverlay, self?.markerGraphicsOverlay, self?.labelGraphicsOverlay])
-                                
-                                // ルート検索処理のセットアップ
-                                weakSelf.setupRouteTask()
-                            }
-                        })
-                        
-                    }
-                    else {
-                        self?.showError(str: "モバイル マップ パッケージの中にマップがありません")
+        // ドキュメント フォルダのパスを取得
+        let path = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]
+        // モバイル マップ パッケージ（.mmpk）ファイルのパスを作成
+        let mmpkPath = "\(path)/map.mmpk"
+        
+        if (FileManager.default.fileExists(atPath: mmpkPath)){
+            // モバイル マップ パッケージの初期化
+            let mmpkUrl = URL(fileURLWithPath: mmpkPath)
+            self.mapPackage = AGSMobileMapPackage(fileURL: mmpkUrl)
+            
+            // モバイル マップ パッケージのロード
+            self.mapPackage.load { [weak self] (error: Error?) in
+                if let error = error {
+                    print(error.localizedDescription)
+                }
+                else {
+                    if let weakSelf = self {
+                        if weakSelf.mapPackage.maps.count > 0 {
+                            // モバイル マップ パッケージに保存されているひとつめのマップを mapView 設定
+                            weakSelf.mapView.map = weakSelf.mapPackage.maps[0]
+                            weakSelf.mapView.map?.load(completion: { [weak self] (error:Error?) -> Void in
+                                if let error = error {
+                                    self?.showError(str: error.localizedDescription)
+                                }
+                                else {
+                                    // マップの最少スケールを設定
+                                    self?.mapView.map?.minScale = 500000
+                                    // グラフィック オーバレイを mapView  に追加
+                                    self?.mapView.graphicsOverlays.addObjects(from: [self!.routeGraphicsOverlay, self!.markerGraphicsOverlay, self!.labelGraphicsOverlay])
+                                    
+                                    // ルート検索処理のセットアップ
+                                    weakSelf.setupRouteTask()
+                                }
+                            })
+                            
+                        }
+                        else {
+                            self?.showError(str: "モバイル マップ パッケージの中にマップがありません")
+                        }
                     }
                 }
             }
+            
+        } else {
+            self.showError(str: "モバイル マップ パッケージがありません")
         }
+
     }
     
     
@@ -196,70 +208,77 @@ class MapViewController: UIViewController , UITextFieldDelegate{
     
     private func addStop() {
         
-        // 観光地の名称と緯度経度が格納されている CSV ファイルを取得
-        let csvPath:String = NSSearchPathForDirectoriesInDomains(.documentDirectory,Foundation.FileManager.SearchPathDomainMask.userDomainMask, true)[0] + "/spot.csv"
+        // ドキュメント フォルダのパスを取得
+        let path = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]
+        // 観光地の名称と緯度経度が格納されている CSV ファイルのパスを作成
+        let csvPath = "\(path)/spot.csv"
         
-        do {
+        if (FileManager.default.fileExists(atPath: csvPath)){
             
-            // CSV の各行を要素として格納した配列を作成
-            let csvStr = try String(contentsOfFile:csvPath, encoding:String.Encoding.utf8)
-            let lineChange = csvStr.replacingOccurrences(of: "\r", with: "\n")
-            let csvArray = lineChange.components(separatedBy: .newlines)
-            
-            // スポットを選択画面で選択された観光地名称の配列を取得
-            let appDelegate: AppDelegate = UIApplication.shared.delegate as! AppDelegate
-            let currentSpotList = appDelegate.currentSpotList
-            
-            // CSV から作成した配列から、選択画面で選択された観光地の要素のみをフィルタリング
-            var searchArray :[String] = []
-            for searchSpot in currentSpotList {
-                let filteredSpot = csvArray.filter {
-                    $0.contains(searchSpot)
+            do {
+                // CSV の各行を要素として格納した配列を作成
+                let csvStr = try String(contentsOfFile:csvPath, encoding:String.Encoding.utf8)
+                let lineChange = csvStr.replacingOccurrences(of: "\r", with: "\n")
+                let csvArray = lineChange.components(separatedBy: .newlines)
+                
+                // スポットを選択画面で選択された観光地名称の配列を取得
+                let appDelegate: AppDelegate = UIApplication.shared.delegate as! AppDelegate
+                let currentSpotList = appDelegate.currentSpotList
+                
+                // CSV から作成した配列から、選択画面で選択された観光地の要素のみをフィルタリング
+                var searchArray :[String] = []
+                for searchSpot in currentSpotList {
+                    let filteredSpot = csvArray.filter {
+                        $0.contains(searchSpot)
+                    }
+                    searchArray.append(contentsOf: filteredSpot)
                 }
-                searchArray.append(contentsOf: filteredSpot)
+                
+                // ルート検索のスタート地点のポイントを設定し、経由地点の配列に追加
+                let basePoint = AGSPoint(x:startLoc[0], y:startLoc[1], spatialReference: AGSSpatialReference.wgs84())
+                // ポイントの空間参照（WGS84）を現在表示しているマップの空間参照に変更
+                let baseMapPoint = AGSGeometryEngine.projectGeometry(basePoint, to: self.mapView.spatialReference!) as? AGSPoint
+                let baseStop = AGSStop(point: baseMapPoint!)
+                self.stopsArray.append(baseStop)
+                
+                
+                // CSV のデータをフィルタリングした配列から各要素を取得
+                for searchSpot in searchArray {
+                    
+                    // 取得した要素の文字列から、観光地の名称・緯度・経度を取得
+                    let spotStr = searchSpot.components(separatedBy: ",")
+                    let name = String(spotStr[0])
+                    let latitude = Double(spotStr[1])
+                    let longitude = Double(spotStr[2])
+                    // 経由地点（観光地）のポイントを作成
+                    let spotPoint = AGSPoint(x:longitude!, y: latitude!, spatialReference: AGSSpatialReference.wgs84())
+                    let mapPoint = AGSGeometryEngine.projectGeometry(spotPoint, to: self.mapView.spatialReference!) as? AGSPoint
+                    let stop = AGSStop(point: mapPoint!)
+                    // ポイントを経由地点の配列に追加
+                    self.stopsArray.append(stop)
+                    
+                    // 観光地の名称を表示するテキスト シンボルを作成
+                    let textSymbol = AGSTextSymbol(text: name, color: UIColor(red: 0, green: 0, blue: 230/255.0, alpha: 1), size: 18, horizontalAlignment: AGSHorizontalAlignment.left, verticalAlignment: AGSVerticalAlignment.top)
+                    // テキスト シンボルとジオメトリ（経由地点）を設定してグラフィックを作成
+                    let textGraphic = AGSGraphic(geometry: mapPoint, symbol: textSymbol, attributes: nil)
+                    // グラフィックをグラフィックス オーバレイに追加
+                    self.labelGraphicsOverlay.graphics.add(textGraphic)
+                    
+                }
+                
+                // ルート検索のゴール地点（スタート地点に戻る）のポイントを設定し、経由地点の配列に追加
+                self.stopsArray.append(baseStop)
+                
+            } catch let error as NSError {
+                self.showError(str: error.localizedDescription)
             }
             
-            // ルート検索のスタート地点のポイントを設定し、経由地点の配列に追加
-            let basePoint = AGSPoint(x:startLoc[0], y:startLoc[1], spatialReference: AGSSpatialReference.wgs84())
-            // ポイントの空間参照（WGS84）を現在表示しているマップの空間参照に変更
-            let baseMapPoint = AGSGeometryEngine.projectGeometry(basePoint, to: self.mapView.spatialReference!) as? AGSPoint
-            let baseStop = AGSStop(point: baseMapPoint!)
-            self.stopsArray.append(baseStop)
+            // ルート検索の実行
+            self.route()
             
-            
-            // CSV のデータをフィルタリングした配列から各要素を取得
-            for searchSpot in searchArray {
-                
-                // 取得した要素の文字列から、観光地の名称・緯度・経度を取得
-                let spotStr = searchSpot.components(separatedBy: ",")
-                let name = String(spotStr[0])
-                let latitude = Double(spotStr[1])
-                let longitude = Double(spotStr[2])
-                // 経由地点（観光地）のポイントを作成
-                let spotPoint = AGSPoint(x:longitude!, y: latitude!, spatialReference: AGSSpatialReference.wgs84())
-                let mapPoint = AGSGeometryEngine.projectGeometry(spotPoint, to: self.mapView.spatialReference!) as? AGSPoint
-                let stop = AGSStop(point: mapPoint!)
-                // ポイントを経由地点の配列に追加
-                self.stopsArray.append(stop)
-
-                // 観光地の名称を表示するテキスト シンボルを作成
-                let textSymbol = AGSTextSymbol(text: name, color: UIColor(red: 0, green: 0, blue: 230/255.0, alpha: 1), size: 18, horizontalAlignment: AGSHorizontalAlignment.left, verticalAlignment: AGSVerticalAlignment.top)
-                // テキスト シンボルとジオメトリ（経由地点）を設定してグラフィックを作成
-                let textGraphic = AGSGraphic(geometry: mapPoint, symbol: textSymbol, attributes: nil)
-                // グラフィックをグラフィックス オーバレイに追加
-                self.labelGraphicsOverlay.graphics.add(textGraphic)
-                
-            }
-            
-            // ルート検索のゴール地点（スタート地点に戻る）のポイントを設定し、経由地点の配列に追加
-            self.stopsArray.append(baseStop)
-            
-        } catch let error as NSError {
-            self.showError(str: error.localizedDescription)
+        } else {
+            self.showError(str: "CSV ファイルがありません")
         }
-        
-        // ルート検索の実行
-        self.route()
         
     }
 
@@ -300,6 +319,8 @@ class MapViewController: UIViewController , UITextFieldDelegate{
                     let routeGraphic = AGSGraphic(geometry: route.routeGeometry, symbol: routeSymbol, attributes: nil)
                     self?.routeGraphicsOverlay.graphics.add(routeGraphic)
                     
+                    // 検索結果のルートにマップをズーム
+                    self?.mapView.setViewpoint(AGSViewpoint(targetExtent: (route.routeGeometry?.extent)!))
                     
                     // 検索結果のルートの総移動時間の取得
                     let totalRouteTime = route.totalTime.rounded()
